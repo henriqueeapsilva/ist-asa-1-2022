@@ -5,23 +5,31 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <unordered_map>
 
 using namespace std;
 
 typedef vector<int> Board;
+unordered_map<unsigned long long, unsigned long> memorization;
 
-map<vector<int>,long long> memory;
+unsigned long long hashFunction(Board board, int n){
+    unsigned long long h = board[0];
+    for (int i = 1; i < n; i ++ )
+        h += h*10 + board[i];
+    return h;
+}
 
 /* initialises the b */
-void parse_input(Board &board){
+int parse_input(Board &board){
     int n,m;                    /* n - rows; m - columns */
     int j;
     cin >> n >> m;
     board = vector<int>(n);
-    for(int i=0;i<n;i++){
+    for(int i=0;i<n || j == EOF;i++){
         cin >> j;
         board[i] = j;
     }
+    return n;
 }
 
 int find_square_index(Board b){
@@ -39,13 +47,6 @@ int max_size_square(Board p, int row) {
     return min(i - row, p[row]);
 }
 
-bool fullBoard(Board b, int n){
-    bool ok = true;
-    for(int i=0;i<n;i++)
-        if(b[i]!= 0) ok = false;
-    return ok;
-}
-
 /* there are only squares of size 1*1 */
 bool only_1_squares(Board b,int n){
     bool ok = true;
@@ -59,46 +60,57 @@ bool only_1_squares(Board b,int n){
 }
 
 
-long long checkMaxCombinations(const Board& board, int row, int ana_row, int side){
-    long long total;
+unsigned long checkMaxCombinations(Board& board, int row, int ana_row, int side){
+    unsigned long  total;
     bool full = false;
-    if(memory.count(board) == 1) {
-        total = memory[board];
-        full = true;
+    unsigned long key = hashFunction(board,row);
+    if(memorization.count(key) == 1) {
+        return memorization[key];
     }
     if(side==-1) {
-        if(fullBoard(board,row)){total = 1; full = true;}
-        ana_row = find_square_index(board);
-        side = max_size_square(board, ana_row);
-    } 
-    if(!full){
-        Board new_board = board;
-        for(int i = 0; i < side; i++){
-            new_board[ana_row + i] -= side;
+        if(only_1_squares(board,row)){total = 1; full = true;}
+        else{
+            ana_row = find_square_index(board);
+            side = max_size_square(board, ana_row);
         }
-        if(only_1_squares(board,row)){
-            if(side == 1) total = 1;
-            else total =  1 + checkMaxCombinations(board, row, ana_row, side - 1);
+    }
+    if(!full) {
+        if (only_1_squares(board, row)) {
+            if (side == 1) total = 1;
+            else total = 1 + checkMaxCombinations(board, row, ana_row, side - 1);
+        } else {
+            for (int i = 0; i < side; i++) {
+                board[ana_row + i] -= side;
+            }
+            if (side == 1) {
+                total = checkMaxCombinations(board, row, 0, -1);
+                for (int i = 0; i < side; i++) {
+                    board[ana_row + i] += side;
+                }
+            }
+            else {
+                total = checkMaxCombinations(board, row, 0, -1);
+                for (int i = 0; i < side; i++) {
+                    board[ana_row + i] += side;
+                }
+                total += checkMaxCombinations(board, row, ana_row, side - 1);
+            }
         }
-        else {
-            if (side == 1) total = checkMaxCombinations(new_board, row, 0, -1);
-            else total = checkMaxCombinations(board, row, ana_row , side-1) + checkMaxCombinations(new_board, row, 0, -1);
-        }
-        memory[board] = total;
+        memorization[hashFunction(board,row) ] = total;
     }
     return total;
 }
 
 int main(){
     Board b;
-    long long combinations;
-    parse_input(b);
-    if(fullBoard(b,(int)b.size())) cout << 0 << endl; // verifies if the board is full 
+    int rows = parse_input(b);
+    if(rows == 0 || b[rows - 1] == 0) cout << 0 << endl; // verifies if the board is full
+    else if(only_1_squares(b,rows)) cout << 1 << endl;
     else {
         int begin = find_square_index(b);
         int side = max_size_square(b, begin);
-        combinations = checkMaxCombinations(b, (int) b.size(), begin, side);
-        cout << combinations << endl;
+        cout << checkMaxCombinations(b, rows, begin, side) << endl;
     }
     return 0;
 }
+

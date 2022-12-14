@@ -1,0 +1,1 @@
+hyperfine --export-json dados.json  --runs 10 --parameter-list TEST tests/test1.txt,tests/test6.txt,tests/test2.txt,tests/test7.txt,tests/test3.txt,tests/test8.txt,tests/test4.txt,tests/test9.txt,tests/test5.txt,tests/test10.txt './a.out  < {TEST}'
